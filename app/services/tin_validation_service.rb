@@ -39,7 +39,12 @@ class TinValidationService
 
   def find_format(formats)
     formats.each do |type, format|
-      return [type, format] if tin.match?(to_regex(format))
+      next unless tin.match?(to_regex(format))
+
+      next if country_code == 'AU' && tin.length == 11 && !AbnService.new(tin).valid_abn?
+
+      return [type, format]
+      break
     end
     [nil, nil]
   end

@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe TinValidationService, type: :service do
   describe '#valid?' do
     context 'when the tin and country_code are valid' do
-      let(:valid_tin_au_abn) { '12 456 789 012' }
+      let(:valid_tin_au_abn) { '10000000000' }
       let(:valid_tin_au_acn) { '123 456 789' }
       let(:valid_tin_ca_gst) { '123456789RT0001' }
       let(:valid_tin_ca_gst_2) { '123456789' }
@@ -15,7 +15,7 @@ RSpec.describe TinValidationService, type: :service do
 
         expect(result).to eq(true)
         expect(error).to eq('')
-        expect(formatted_tin).to eq('12 456 789 012')
+        expect(formatted_tin).to eq('10 000 000 000')
         expect(type).to eq(:au_abn)
       end
 
@@ -94,6 +94,21 @@ RSpec.describe TinValidationService, type: :service do
         expect(formatted_tin).to eq('')
         expect(type).to eq('')
       end
+    end
+
+    context 'when the tin is valid but ABN is invalid' do
+      let(:invalid_tin_au_abn) { '10120000005' }
+
+      it 'returns false for AU ABN when algorith check is invalid' do
+        service = TinValidationService.new(invalid_tin_au_abn, 'AU')
+        result, error, formatted_tin, type = service.valid?
+
+        expect(result).to eq(false)
+        expect(error).to eq('TIN format does not match')
+        expect(formatted_tin).to eq('')
+        expect(type).to eq('')
+      end
+        
     end
 
     context 'when the country_code does not exist' do
