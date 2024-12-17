@@ -27,26 +27,39 @@ class TinValidationService
 
   def valid?
     formats = FORMATS[country_code]
-    return [false, ERROR_MESSAGES[:missing_country], '', ''] unless formats
+    return { valid: false, errors: [ERROR_MESSAGES[:missing_country]] } unless formats
 
-    type, format = find_format(formats)
-    return [false, ERROR_MESSAGES[:invalid_format], '', ''] unless format
+    response, format, type = find_format(formats)
+    return { valid: false, errors: [ERROR_MESSAGES[:invalid_format]] } unless format || !(response[:errors].nil? || response[:errors].empty?)
 
-    [true, '', format_tin(format), type]
+    if (format)
+      response[:formatted_tin] = format_tin(format)
+      response[:tin_type] = type
+    end 
+
+    response
   end
 
   private
 
   def find_format(formats)
+    response = {}
     formats.each do |type, format|
       next unless tin.match?(to_regex(format))
 
-      next if country_code == 'AU' && tin.length == 11 && !AbnService.new(tin).valid_abn?
+      if country_code == 'AU' && tin.length == 11
+        abn_service = AbnService.new(tin)
+        response[:valid] = abn_service.local_valid_abn?
+        response.merge!(abn_service.external_valid_abn?)
+        next if response[:valid].blank?
+      end
 
-      return [type, format]
+      response[:valid] = true
+
+      return response, format, type
       break
     end
-    [nil, nil]
+    response
   end
 
   def to_regex(format)

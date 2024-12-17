@@ -1,12 +1,12 @@
 class TinsController < ApplicationController
 
   def validate
-    result, error, formatted_tin, format_type = TinValidationService.new(tin_params[:tin], tin_params[:country_code]).valid?
+    response = TinValidationService.new(tin_params[:tin], tin_params[:country_code]).valid?
 
-    if result
-      render json: { valid: true, formatted_tin:, format_type: }, status: :ok
+    if response[:valid]
+      render json: response, status: :ok
     else
-      render json: { valid: false, message: error }, status: :bad_request
+      render json: response, status: :unprocessable_entity
     end
   end
 

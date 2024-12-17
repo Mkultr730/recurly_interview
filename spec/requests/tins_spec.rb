@@ -6,7 +6,7 @@ RSpec.describe TinsController, type: :controller do
       let(:valid_params) { { tin: '123456789', country_code: 'CA' } }
 
       before do
-        allow(TinValidationService).to receive(:new).and_return(double(valid?: [true, '', '123456789RT0001', :ca_gst]))
+        allow(TinValidationService).to receive(:new).and_return(double(valid?: { valid: true, errors: [], formatted_tin: '123456789RT0001', tin_type: :ca_gst }))
         post :validate, params: valid_params
       end
 
@@ -21,7 +21,7 @@ RSpec.describe TinsController, type: :controller do
 
       it 'returns the correct format type' do
         json_response = JSON.parse(response.body)
-        expect(json_response['format_type']).to eq('ca_gst')
+        expect(json_response['tin_type']).to eq('ca_gst')
       end
 
       it 'returns valid true' do
@@ -34,17 +34,17 @@ RSpec.describe TinsController, type: :controller do
       let(:invalid_params) { { tin: '123', country_code: 'CA' } }
 
       before do
-        allow(TinValidationService).to receive(:new).and_return(double(valid?: [false, 'Invalid format', '', '']))
+        allow(TinValidationService).to receive(:new).and_return(double(valid?: { valid: false, errors: ['Invalid format'], formatted_tin: '', type: '' }))
         post :validate, params: invalid_params
       end
 
-      it 'returns a 400 status code' do
-        expect(response).to have_http_status(:bad_request)
+      it 'returns a 422 status code' do
+        expect(response).to have_http_status(:unprocessable_entity)
       end
 
       it 'returns the error message' do
         json_response = JSON.parse(response.body)
-        expect(json_response['message']).to eq('Invalid format')
+        expect(json_response['errors']).to include('Invalid format')
       end
 
       it 'returns valid false' do
@@ -57,17 +57,17 @@ RSpec.describe TinsController, type: :controller do
       let(:invalid_country_code) { { tin: '123456789', country_code: 'XX' } }
 
       before do
-        allow(TinValidationService).to receive(:new).and_return(double(valid?: [false, 'Country code does not exists', '', '']))
+        allow(TinValidationService).to receive(:new).and_return(double(valid?: { valid: false, errors: ['Country code does not exist'], formatted_tin: '', type: '' }))
         post :validate, params: invalid_country_code
       end
 
-      it 'returns a 400 status code' do
-        expect(response).to have_http_status(:bad_request)
+      it 'returns a 422 status code' do
+        expect(response).to have_http_status(:unprocessable_entity)
       end
 
       it 'returns the error message for unknown country code' do
         json_response = JSON.parse(response.body)
-        expect(json_response['message']).to eq('Country code does not exists')
+        expect(json_response['errors']).to include('Country code does not exist')
       end
     end
   end
